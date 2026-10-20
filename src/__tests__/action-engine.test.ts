@@ -786,7 +786,9 @@ describe('ActionEngine', () => {
     const llm = makeMockLLM({ elementId: 0, action: 'click', reasoning: 'Click submit' });
 
     // Make the locator's click fail and isVisible return false (no strategy visible)
-    (locatorInstance.click as jest.Mock<any>).mockRejectedValue(new Error('fallback failed'));
+    (
+      locatorInstance.click as jest.Mock<(...args: unknown[]) => Promise<unknown>>
+    ).mockRejectedValue(new Error('fallback failed'));
     locatorInstance.isVisible.mockResolvedValue(false);
 
     const engine = new ActionEngine(page as any, stateParser as any, llm);
@@ -1849,7 +1851,9 @@ describe('ActionEngine verbose logging', () => {
 
   it('verbose 2: "All paths failed" warn is logged when both primary and fallback fail', async () => {
     const locatorInstance = makeMockLocator();
-    (locatorInstance.click as jest.Mock<any>).mockRejectedValue(new Error('fallback failed'));
+    (
+      locatorInstance.click as jest.Mock<(...args: unknown[]) => Promise<unknown>>
+    ).mockRejectedValue(new Error('fallback failed'));
     locatorInstance.isVisible.mockResolvedValue(false);
 
     const page = {
