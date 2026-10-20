@@ -55,6 +55,7 @@ describe('CLI: buildProgram', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    process.exitCode = undefined;
   });
 
   // ── run command ─────────────────────────────────────────────────────────────

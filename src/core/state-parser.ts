@@ -40,6 +40,8 @@ export interface UIElement {
     hidden?: boolean;
     focused?: boolean;
     checked?: boolean | 'mixed';
+    selected?: boolean;
+    readonly?: boolean;
   };
   /**
    * Opaque frame identifier. Present only when the element lives inside an
@@ -690,10 +692,19 @@ export class StateParser {
             if (rect.width < 5 || rect.height < 5) continue;
             if (rect.left >= vw || rect.top >= vh) continue;
 
+            const control = htmlEl as HTMLInputElement;
+            const labelledBy = (htmlEl.getAttribute('aria-labelledby') ?? '')
+              .split(/\s+/)
+              .map(id => document.getElementById(id)?.textContent?.trim() ?? '')
+              .filter(Boolean)
+              .join(' ');
             const name =
+              labelledBy ||
               htmlEl.getAttribute('aria-label') ||
+              Array.from(control.labels ?? [])
+                .map(label => label.textContent?.trim())
+                .join(' ') ||
               htmlEl.getAttribute('title') ||
-              htmlEl.getAttribute('data-testid') ||
               htmlEl.getAttribute('placeholder') ||
               (htmlEl.textContent?.trim().slice(0, 80) ?? '') ||
               '';
@@ -703,9 +714,51 @@ export class StateParser {
             if (seen.has(key)) continue;
             seen.add(key);
 
+            let role = htmlEl.getAttribute('role');
+            const tag = htmlEl.tagName.toLowerCase();
+            if (!role) {
+              if (tag === 'input') {
+                const type = control.type;
+                role =
+                  (
+                    {
+                      checkbox: 'checkbox',
+                      radio: 'radio',
+                      range: 'slider',
+                      number: 'spinbutton',
+                      search: 'searchbox',
+                      button: 'button',
+                      submit: 'button',
+                      reset: 'button',
+                    } as Record<string, string>
+                  )[type] ?? 'textbox';
+              } else {
+                role =
+                  (
+                    {
+                      a: 'link',
+                      textarea: 'textbox',
+                      select: control.multiple ? 'listbox' : 'combobox',
+                    } as Record<string, string>
+                  )[tag] ?? tag;
+              }
+            }
             results.push({
-              role: htmlEl.getAttribute('role') || htmlEl.tagName.toLowerCase(),
+              role,
               name,
+              value:
+                ['input', 'textarea', 'select'].includes(tag) && control.type !== 'password'
+                  ? control.value
+                  : undefined,
+              state: {
+                disabled: control.disabled,
+                readonly: control.readOnly,
+                focused: document.activeElement === htmlEl,
+                checked: ['checkbox', 'radio'].includes(control.type) ? control.checked : undefined,
+                selected: htmlEl.hasAttribute('aria-selected')
+                  ? htmlEl.getAttribute('aria-selected') === 'true'
+                  : undefined,
+              },
               x: rect.x,
               y: rect.y,
               width: rect.width,
@@ -720,6 +773,8 @@ export class StateParser {
             id: counter.n++,
             role: el.role,
             name: `[frame] ${el.name}`,
+            ...(el.value !== undefined ? { value: el.value } : {}),
+            state: el.state,
             boundingClientRect: {
               x: el.x + iframeRect.x,
               y: el.y + iframeRect.y,
@@ -889,6 +944,8 @@ export class StateParser {
         if (prop.name === 'hidden') state.hidden = prop.value.value;
         if (prop.name === 'focused') state.focused = prop.value.value;
         if (prop.name === 'checked') state.checked = prop.value.value;
+        if (prop.name === 'selected') state.selected = prop.value.value;
+        if (prop.name === 'readonly') state.readonly = prop.value.value;
       }
     }
     // Track input values for form fields

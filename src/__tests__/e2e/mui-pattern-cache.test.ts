@@ -42,7 +42,7 @@ describeE2E('E2E: PatternCache — LLM-skip on second hit', () => {
   beforeAll(async () => {
     sentinel = new Sentinel({
       apiKey: API_KEY,
-      headless: false,
+      headless: process.env.SENTINEL_E2E_HEADED !== '1',
       verbose: 2,
       viewport: { width: 1280, height: 800 },
       domSettleTimeoutMs: 3000,

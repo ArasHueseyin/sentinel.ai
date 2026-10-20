@@ -64,7 +64,10 @@ npm run verify:package # pack, install into a temp project, import as a consumer
 
 Tests use [Jest](https://jestjs.io/) in ESM mode (`node --experimental-vm-modules`).
 Browser-level tests require a real Chromium install (`npx playwright install chromium`).
-The nightly/manual CI job runs headed browsers under Xvfb on Ubuntu 24.04.
+Browser tests run headless by default; set `SENTINEL_E2E_HEADED=1` to show them.
+Every PR runs deterministic Chromium action regressions without an API key:
+`npm run test:e2e -- --runTestsByPath src/__tests__/e2e/action-regressions.test.ts`.
+The nightly/manual CI job also runs live-site and Gemini integrations on Ubuntu 24.04.
 Configure the `GEMINI_API_KEY` Actions secret before running it; the job fails
 when the secret is missing so an entirely skipped suite cannot appear green.
 

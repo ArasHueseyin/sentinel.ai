@@ -46,8 +46,9 @@ function tokenize(text: string): string[] {
 const BLOCKER_KEYWORDS = /cookie|consent|akzeptieren|accept all|datenschutz|privacy|zustimmen/i;
 
 /**
- * Filters `elements` down to at most `maxCount` entries, keeping those whose
- * role+name overlap most with the instruction. When the page has ≤ maxCount
+ * Filters `elements` toward `maxCount` entries, keeping those whose
+ * role+name overlap most with the instruction. Mandatory form fields and named
+ * targets may exceed that budget. When the page has ≤ maxCount
  * elements the list is returned unchanged. Elements with a relevance score of 0
  * fill remaining slots in their original order (stable sort).
  */
@@ -129,6 +130,10 @@ export function filterRelevantElements(
 
   // Stable sort: higher score first, original order preserved for ties
   scored.sort((a, b) => b.score - a.score);
-  const remaining = maxCount - alwaysKeep.length;
-  return [...alwaysKeep, ...scored.slice(0, Math.max(0, remaining)).map(s => s.el)];
+  // Mandatory fields can already exceed the budget (e.g. a component gallery
+  // with dozens of radios). They must not crowd out an explicitly named tab or
+  // link. Keep matching targets as well, then spend any remaining slots on context.
+  const matchingCount = scored.filter(s => s.score > 0).length;
+  const remaining = Math.max(maxCount - alwaysKeep.length, Math.min(maxCount, matchingCount));
+  return [...alwaysKeep, ...scored.slice(0, remaining).map(s => s.el)];
 }

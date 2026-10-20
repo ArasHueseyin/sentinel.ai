@@ -36,6 +36,11 @@ async function classify(page: Page, point: ViewportPoint): Promise<Classificatio
     ({ x, y, sel, depth }: { x: number; y: number; sel: string; depth: number }) => {
       const hit = document.elementFromPoint(x, y) as HTMLElement | null;
       if (!hit) return { kind: 'unknown' as const };
+      // Classify an input itself before walking containers that may also hold
+      // unrelated writable fields elsewhere in the form.
+      if (hit instanceof HTMLInputElement && !hit.matches(sel)) {
+        return { kind: hit.readOnly ? ('popup' as const) : ('writable' as const) };
+      }
       let node: HTMLElement | null = hit;
       for (let d = 0; d < depth && node; d++) {
         const nativeHere: HTMLInputElement | null = node.matches?.(sel)

@@ -165,6 +165,26 @@ export async function pickDateFromPopup(page: Page, parts: DateParts): Promise<b
             }
           }
 
+          // A bare day number also exists in every other month. Only use it
+          // after confirming the displayed month/year; otherwise navigate first.
+          const scope = root.parentElement || root;
+          const headerText = Array.from(
+            scope.querySelectorAll<HTMLElement>(
+              '[role="heading"], [aria-live], [class*="header"], [class*="caption"], [class*="title"], [class*="label"]'
+            )
+          )
+            .map(el => el.textContent ?? '')
+            .join(' ')
+            .toLowerCase();
+          const targetMonthNames = (['long', 'short'] as const).map(style =>
+            new Intl.DateTimeFormat(locale, { month: style }).format(target).toLowerCase()
+          );
+          if (
+            !headerText.includes(String(year)) ||
+            !targetMonthNames.some(name => headerText.includes(name))
+          )
+            return false;
+
           // Pass 2: text content == day number AND cell not in outside-month state
           const dayStr = String(day);
           for (const cell of cells) {

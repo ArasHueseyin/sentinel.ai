@@ -516,6 +516,13 @@ export class Sentinel extends EventEmitter {
           // no meaningful state diff (the verifier already handles this as fast path 3,
           // but skipping the extra parse saves time).
           const isScrollAction = /scroll/i.test(result.action ?? '');
+          if (isScrollAction && !/\bscroll\b/i.test(instruction)) {
+            previousFailures.push(
+              'Scrolling only changed the viewport; the requested interaction still needs to be completed.'
+            );
+            currentAttempt++;
+            continue;
+          }
           if (isScrollAction) {
             this.log(1, `✅ "${instruction}" completed (scroll — skipping verification)`);
             const actionResult: ActionResult = {
@@ -831,7 +838,7 @@ export class Sentinel extends EventEmitter {
    */
   async fillForm(
     data: Record<string, string | number | boolean>,
-    options?: { maxSteps?: number }
+    options?: AgentRunOptions
   ): Promise<AgentResult> {
     if (!this.agentLoop) throw new Error('Sentinel not initialized. Call init() first.');
 
@@ -846,7 +853,7 @@ export class Sentinel extends EventEmitter {
       `Fill all fields top-to-bottom, then click the submit/next button if one is visible.`;
 
     this.log(1, `📝 fillForm: ${Object.keys(data).length} fields`);
-    return this.run(goal, { maxSteps: options?.maxSteps ?? 15 });
+    return this.run(goal, { ...options, maxSteps: options?.maxSteps ?? 15 });
   }
 
   /**

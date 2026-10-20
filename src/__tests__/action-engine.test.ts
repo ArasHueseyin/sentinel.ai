@@ -1948,6 +1948,18 @@ function makeEl(id: number, role: string, name: string): UIElement {
 }
 
 describe('filterRelevantElements', () => {
+  it('keeps a named tab even when mandatory form fields exceed the budget', () => {
+    const fields = Array.from({ length: 60 }, (_, i) => makeEl(i, 'radio', `Choice ${i}`));
+    const target = makeEl(61, 'tab', 'Item Two');
+    const result = filterRelevantElements(
+      [...fields, target, makeEl(62, 'heading', 'Unrelated')],
+      'Click the Item Two tab',
+      50
+    );
+    expect(result).toContain(target);
+    expect(result.filter(e => e.role === 'radio')).toHaveLength(60);
+    expect(result.some(e => e.name === 'Unrelated')).toBe(false);
+  });
   it('returns list unchanged when count ≤ maxCount', () => {
     const els = [makeEl(0, 'button', 'Submit'), makeEl(1, 'textbox', 'Email')];
     const result = filterRelevantElements(els, 'click submit button', 5);
