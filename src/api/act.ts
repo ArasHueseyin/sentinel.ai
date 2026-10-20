@@ -12,7 +12,7 @@ import { createLogger, type Logger } from '../utils/logger.js';
 import { ActionError, CaptchaDetectedError } from '../types/errors.js';
 import { detectCaptcha, describeCaptcha } from '../reliability/captcha-detector.js';
 
-import type { ActOptions, ActionAttempt, ActionResult, ActionType } from './act/types.js';
+import type { ActOptions, ActionAttempt, ActionExecutionResult, ActionType } from './act/types.js';
 import { waitForPageSettle } from './act/page-settle.js';
 import { moveMouse } from './act/mouse.js';
 import { buildFailureMessage } from './act/diagnostics.js';
@@ -423,7 +423,7 @@ export class ActionEngine {
     });
   }
 
-  async act(instruction: string, options?: ActOptions): Promise<ActionResult> {
+  async act(instruction: string, options?: ActOptions): Promise<ActionExecutionResult> {
     const variables = options?.variables;
     const resolvedInstruction = interpolateVariables(instruction, variables);
     // Caches key on the *template*, never the resolved text. The resolved form
@@ -460,6 +460,7 @@ export class ActionEngine {
             return {
               success: true,
               message: `Successfully performed ${cached.action} on "${target.name}" (cached)`,
+              targetId: target.id,
               action: actionLabel,
             };
           } catch {
@@ -667,6 +668,7 @@ ${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.
             return {
               success: true,
               message: `Successfully performed ${decision.action} on "${firstTarget.name}" (via Vision)`,
+              targetId: firstTarget.id,
               action: `${decision.action} on "${firstTarget.name}" (${firstTarget.role})`,
               ...(selector !== undefined ? { selector } : {}),
             };
@@ -759,6 +761,7 @@ ${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.
         return {
           success: true,
           message: `Successfully performed ${decision.action}${target ? ` on "${target.name}"` : ''}${ci > 0 ? ` (candidate #${ci + 1})` : ''}`,
+          ...(target ? { targetId: target.id } : {}),
           action: actionLabel,
           ...(selector !== undefined ? { selector } : {}),
         };
@@ -796,6 +799,7 @@ ${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.
             return {
               success: true,
               message: `Successfully performed ${decision.action}${target ? ` on "${target.name}"` : ''} (after removing blocker)`,
+              ...(target ? { targetId: target.id } : {}),
               action: actionLabel,
               ...(selector !== undefined ? { selector } : {}),
             };
@@ -841,6 +845,7 @@ ${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.
           return {
             success: true,
             message: `Successfully performed ${decision.action} on "${retryTarget.name}" (after auto-recovery)`,
+            targetId: retryTarget.id,
             action: `${decision.action} on "${retryTarget.name}" (${retryTarget.role})`,
           };
         } catch {
@@ -876,6 +881,7 @@ ${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.
           return {
             success: true,
             message: `Successfully performed ${decision.action} on "${target.name}" (via Vision Grounding)`,
+            targetId: target.id,
             action: actionLabel,
             ...(selector !== undefined ? { selector } : {}),
           };
@@ -924,6 +930,7 @@ ${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.
       return {
         success: true,
         message: `Successfully performed ${decision.action}${target ? ` on "${target.name}"` : ''} (via fallback)`,
+        ...(target ? { targetId: target.id } : {}),
         action: actionLabel,
         ...(selector !== undefined ? { selector } : {}),
       };

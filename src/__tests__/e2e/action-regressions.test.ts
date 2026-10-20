@@ -79,6 +79,23 @@ describe('Browser action regressions', () => {
     expect(verificationCalls).toBe(0);
   }, 20_000);
 
+  it('verifies the executed field when two textboxes share their accessible name', async () => {
+    const s = await open(
+      '<label>Outlined<input></label><br><label>Outlined<input></label>',
+      'Outlined',
+      'fill',
+      'hello sentinel'
+    );
+    const result = await s.act('Fill the first Outlined field with hello sentinel', { retries: 0 });
+    expect(result.success).toBe(true);
+    expect(result).not.toHaveProperty('targetId');
+    expect(await s.page.getByRole('textbox', { name: 'Outlined' }).first().inputValue()).toBe(
+      'hello sentinel'
+    );
+    expect(await s.page.getByRole('textbox', { name: 'Outlined' }).nth(1).inputValue()).toBe('');
+    expect(verificationCalls).toBe(0);
+  }, 20_000);
+
   it('fills a readonly calendar input through the date cascade', async () => {
     const s = await open(
       `<label for="date">Event date</label><input id="date" readonly placeholder="click to pick" onclick="document.querySelector('[role=dialog]').hidden=false">

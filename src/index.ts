@@ -555,7 +555,8 @@ export class Sentinel extends EventEmitter {
             result.action ?? instruction,
             stateBefore,
             stateAfter,
-            instruction
+            instruction,
+            result.targetId
           );
 
           if (verification.success && verification.confidence > 0.7) {
