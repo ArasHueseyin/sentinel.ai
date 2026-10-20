@@ -220,7 +220,7 @@ describe('createCachingProvider()', () => {
 
   it('different prompts result in separate cache entries', async () => {
     const p = makeMockProvider();
-    (p.generateStructuredData as jest.Mock<any>)
+    (p.generateStructuredData as jest.Mock<(...args: unknown[]) => Promise<unknown>>)
       .mockResolvedValueOnce({ action: 'click' })
       .mockResolvedValueOnce({ action: 'fill' });
 
@@ -245,7 +245,7 @@ describe('createCachingProvider()', () => {
 
   it('different system instructions for generateText produce separate entries', async () => {
     const p = makeMockProvider();
-    (p.generateText as jest.Mock<any>)
+    (p.generateText as jest.Mock<(...args: unknown[]) => Promise<unknown>>)
       .mockResolvedValueOnce('result A')
       .mockResolvedValueOnce('result B');
 
