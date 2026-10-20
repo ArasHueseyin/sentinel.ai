@@ -64,6 +64,9 @@ npm run verify:package # pack, install into a temp project, import as a consumer
 
 Tests use [Jest](https://jestjs.io/) in ESM mode (`node --experimental-vm-modules`).
 Browser-level tests require a real Chromium install (`npx playwright install chromium`).
+The nightly/manual CI job runs headed browsers under Xvfb on Ubuntu 24.04.
+Configure the `GEMINI_API_KEY` Actions secret before running it; the job fails
+when the secret is missing so an entirely skipped suite cannot appear green.
 
 `npm run verify:package` is the gate that catches broken packaging (a missing
 `files` entry, an unresolvable subpath export). It runs in CI and on
