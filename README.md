@@ -71,6 +71,10 @@ Full benchmark methodology and raw data: [isoldex.ai/benchmark](https://isoldex.
 - **CLI** — `npx sentinel run "goal" --url https://...`
 - **MCP Server** — use Sentinel from Claude Desktop, Cursor, or any MCP client (stdio or standalone HTTP transport)
 
+`run()` and `fillForm()` both accept `maxSteps`, `timeoutMs`, and an `AbortSignal`
+via their options. Cancellation and time budgets are checked between steps and
+after planning, before the next browser action starts.
+
 ## Credentials
 
 Either a Gemini `apiKey` or a custom `provider` — the type system enforces one of them, and providers carry their own credentials:
