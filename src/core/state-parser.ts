@@ -236,7 +236,7 @@ export class StateParser {
     // independent queries — run them concurrently to cut parse latency.
     const hasFormInputs = uiElements.some(e => FORM_INPUT_ROLES.has(e.role));
     const [formElements, editableElements, frameElements] = await Promise.all([
-      hasFormInputs ? Promise.resolve([]) : this.parseFormElements(counter),
+      this.parseFormElements(counter, hasFormInputs),
       this.parseContentEditableElements(counter),
       this.parseFrameElements(counter),
     ]);
@@ -245,6 +245,13 @@ export class StateParser {
     const existingKeys = new Set(uiElements.map(e => dedupKey(e)));
     for (const el of formElements) {
       const key = dedupKey(el);
+      // Chromium exposes file inputs as buttons and omits their selected
+      // value from AX. Prefer the DOM file control over that same-position button.
+      if (el.role === 'file' && existingKeys.has(key)) {
+        const index = uiElements.findIndex(existing => dedupKey(existing) === key);
+        uiElements[index] = el;
+        continue;
+      }
       if (el.name && !existingKeys.has(key)) {
         uiElements.push(el);
         existingKeys.add(key);
@@ -459,8 +466,8 @@ export class StateParser {
    * (e.g. CSS-styled components, shadow-DOM-adjacent inputs, hidden-then-visible fields).
    * Only runs when no textbox/combobox/spinbutton was found via AOM.
    */
-  private async parseFormElements(counter: { n: number }): Promise<UIElement[]> {
-    const rawElements = await this.page.evaluate(() => {
+  private async parseFormElements(counter: { n: number }, filesOnly = false): Promise<UIElement[]> {
+    const rawElements = await this.page.evaluate((onlyFiles: boolean) => {
       const results: any[] = [];
       const seen = new Set<string>();
 
@@ -474,9 +481,11 @@ export class StateParser {
       }
 
       const candidates = queryShadowAll(
-        'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="image"]),' +
-          'select, textarea, [role="radio"], [role="checkbox"], [role="option"],' +
-          '[contenteditable="true"], [contenteditable=""]',
+        onlyFiles
+          ? 'input[type="file"]'
+          : 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="image"]),' +
+              'select, textarea, [role="radio"], [role="checkbox"], [role="option"],' +
+              '[contenteditable="true"], [contenteditable=""]',
         document
       );
 
@@ -545,7 +554,7 @@ export class StateParser {
         });
       }
       return results;
-    });
+    }, filesOnly);
 
     return rawElements.map((el: any) => ({
       id: counter.n++,

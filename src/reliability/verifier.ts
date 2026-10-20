@@ -145,9 +145,9 @@ export class Verifier {
         : undefined;
     const isValueIntent = /\b(fill|append|type|set|choose|select)\b/i.test(intentString);
     const valueRoles =
-      /^(textbox|searchbox|combobox|listbox|spinbutton|slider|datepicker|timepicker)$/;
+      /^(textbox|searchbox|combobox|listbox|spinbutton|slider|datepicker|timepicker|file)$/;
     const requiresValue =
-      /^(fill|append|select)\b/i.test(action) ||
+      /^(fill|append|select|upload)\b/i.test(action) ||
       (isValueIntent && valueRoles.test(targetBefore?.role ?? ''));
     const targetValueChanged =
       !!targetBefore && !!targetAfter && (targetBefore.value ?? '') !== (targetAfter.value ?? '');

@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it } from '@jest/globals';
+import { mkdtempSync, writeFileSync, unlinkSync, rmdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Sentinel } from '../../index.js';
 import type { LLMProvider } from '../../utils/llm-provider.js';
 
@@ -165,5 +168,30 @@ describe('Browser action regressions', () => {
     expect(result.goalAchieved).toBe(false);
     expect(await s.page.getByLabel('Name').inputValue()).toBe('');
     expect(verificationCalls).toBe(0);
+  }, 20_000);
+
+  it('verifies a selected file even when another textbox is present', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'sentinel-upload-regression-'));
+    const file = join(directory, 'resume.txt');
+    writeFileSync(file, 'Example resume');
+    try {
+      const s = await open(
+        '<label>Name<input></label><label>Curriculum Vitae<input type="file"></label>',
+        'Curriculum Vitae',
+        'upload',
+        file
+      );
+      const result = await s.act('Upload the resume to the Curriculum Vitae field', { retries: 0 });
+      expect(result.success).toBe(true);
+      expect(
+        await s.page
+          .getByLabel('Curriculum Vitae')
+          .evaluate(input => (input as HTMLInputElement).files?.[0]?.name)
+      ).toBe('resume.txt');
+      expect(verificationCalls).toBe(0);
+    } finally {
+      unlinkSync(file);
+      rmdirSync(directory);
+    }
   }, 20_000);
 });
