@@ -5,7 +5,7 @@ Thanks for your interest in contributing! Sentinel is MIT-licensed and welcomes 
 ## Quick start
 
 ```bash
-git clone https://github.com/ArasHuseyin/sentinel.ai
+git clone https://github.com/ArasHueseyin/sentinel.ai
 cd sentinel
 npm install
 npm run build
@@ -64,11 +64,38 @@ npm run verify:package # pack, install into a temp project, import as a consumer
 
 Tests use [Jest](https://jestjs.io/) in ESM mode (`node --experimental-vm-modules`).
 Browser-level tests require a real Chromium install (`npx playwright install chromium`).
+The nightly/manual CI job runs headed browsers under Xvfb on Ubuntu 24.04.
+Configure the `GEMINI_API_KEY` Actions secret before running it; the job fails
+when the secret is missing so an entirely skipped suite cannot appear green.
 
 `npm run verify:package` is the gate that catches broken packaging (a missing
 `files` entry, an unresolvable subpath export). It runs in CI and on
 `prepublishOnly`; run it locally before proposing anything that touches
 `package.json`, `tsconfig.build.json`, or the module layout.
+
+## Publishing releases
+
+The Release workflow publishes version tags with npm Trusted Publishing (OIDC).
+It uses Node 24 and npm 11, and does not require the `NPM_TOKEN` secret.
+
+A package maintainer must configure the following trusted publisher in the
+settings for `@isoldex/sentinel` on npm before the next release:
+
+- Provider: GitHub Actions
+- Organization or user: `ArasHueseyin`
+- Repository: `sentinel.ai`
+- Workflow filename: `release.yml`
+- Environment: leave empty (the workflow does not use a GitHub environment)
+- Allowed action: direct publishing with `npm publish`
+
+Follow the [npm Trusted Publishing setup](https://docs.npmjs.com/trusted-publishers/).
+Create a new configuration shortly before a release: npm expires configurations
+that do not complete their first publish within two days. `--provenance` signs
+the package; authentication comes from the separate trusted publisher setup.
+
+After merging and validating the release commit, create a version tag matching
+`package.json` and push it. A workflow dry run cannot verify npm-side trust;
+successful publishing is the final check.
 
 ## Code style
 

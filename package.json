@@ -72,10 +72,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ArasHuseyin/sentinel.ai.git"
+    "url": "git+https://github.com/ArasHueseyin/sentinel.ai.git"
   },
   "bugs": {
-    "url": "https://github.com/ArasHuseyin/sentinel.ai/issues"
+    "url": "https://github.com/ArasHueseyin/sentinel.ai/issues"
   },
   "homepage": "https://isoldex.ai",
   "peerDependencies": {
