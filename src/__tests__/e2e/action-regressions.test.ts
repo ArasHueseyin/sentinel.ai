@@ -99,6 +99,22 @@ describe('Browser action regressions', () => {
     expect(verificationCalls).toBe(0);
   }, 20_000);
 
+  it('keeps the executed DOM identity when scrolling changes duplicate field positions', async () => {
+    const s = await open(
+      '<div style="height:2000px"></div><label>Outlined<input></label><div style="height:1500px"></div><label>Outlined<input></label>',
+      'Outlined',
+      'fill',
+      'hello sentinel'
+    );
+    const result = await s.act('Fill the first Outlined field with hello sentinel', { retries: 0 });
+    expect(result.success).toBe(true);
+    expect(await s.page.getByRole('textbox', { name: 'Outlined' }).first().inputValue()).toBe(
+      'hello sentinel'
+    );
+    expect(await s.page.getByRole('textbox', { name: 'Outlined' }).nth(1).inputValue()).toBe('');
+    expect(verificationCalls).toBe(0);
+  }, 20_000);
+
   it('fills a readonly calendar input through the date cascade', async () => {
     const s = await open(
       `<label for="date">Event date</label><input id="date" readonly placeholder="click to pick" onclick="document.querySelector('[role=dialog]').hidden=false">
@@ -193,5 +209,15 @@ describe('Browser action regressions', () => {
       unlinkSync(file);
       rmdirSync(directory);
     }
+  }, 20_000);
+
+  it('discovers a clipped rating radio by its visible label alongside a textbox', async () => {
+    const s = await open(
+      '<label>Name<input></label><label style="display:inline-block;width:60px;height:40px">4 Stars<input type="radio" name="rating" style="position:absolute;width:1px;height:1px;clip:rect(0,0,0,0)"></label>',
+      '4 Stars',
+      'click'
+    );
+    expect((await s.act('Set the rating to 4 stars', { retries: 0 })).success).toBe(true);
+    expect(await s.page.getByRole('radio', { name: '4 Stars' }).isChecked()).toBe(true);
   }, 20_000);
 });

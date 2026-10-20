@@ -20,6 +20,8 @@ const VALUE_ROLES = new Set([
 
 export interface UIElement {
   id: number;
+  /** Stable Chromium DOM identity across parses of the same document. */
+  backendDOMNodeId?: number;
   role: string;
   name: string;
   description?: string;
@@ -249,7 +251,11 @@ export class StateParser {
       // value from AX. Prefer the DOM file control over that same-position button.
       if (el.role === 'file' && existingKeys.has(key)) {
         const index = uiElements.findIndex(existing => dedupKey(existing) === key);
-        uiElements[index] = el;
+        const backendDOMNodeId = uiElements[index]?.backendDOMNodeId;
+        uiElements[index] = {
+          ...el,
+          ...(backendDOMNodeId !== undefined ? { backendDOMNodeId } : {}),
+        };
         continue;
       }
       if (el.name && !existingKeys.has(key)) {
@@ -283,7 +289,11 @@ export class StateParser {
         const key = dedupKey(el);
         const existingIdx = wKeys.get(key);
         if (existingIdx !== undefined) {
-          uiElements[existingIdx] = el;
+          const backendDOMNodeId = uiElements[existingIdx]?.backendDOMNodeId;
+          uiElements[existingIdx] = {
+            ...el,
+            ...(backendDOMNodeId !== undefined ? { backendDOMNodeId } : {}),
+          };
         } else {
           uiElements.push(el);
           wKeys.set(key, uiElements.length - 1);
@@ -466,8 +476,11 @@ export class StateParser {
    * (e.g. CSS-styled components, shadow-DOM-adjacent inputs, hidden-then-visible fields).
    * Only runs when no textbox/combobox/spinbutton was found via AOM.
    */
-  private async parseFormElements(counter: { n: number }, filesOnly = false): Promise<UIElement[]> {
-    const rawElements = await this.page.evaluate((onlyFiles: boolean) => {
+  private async parseFormElements(
+    counter: { n: number },
+    controlsOnly = false
+  ): Promise<UIElement[]> {
+    const rawElements = await this.page.evaluate((onlyControls: boolean) => {
       const results: any[] = [];
       const seen = new Set<string>();
 
@@ -481,8 +494,8 @@ export class StateParser {
       }
 
       const candidates = queryShadowAll(
-        onlyFiles
-          ? 'input[type="file"]'
+        onlyControls
+          ? 'input[type="file"], input[type="radio"], input[type="checkbox"]'
           : 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="image"]),' +
               'select, textarea, [role="radio"], [role="checkbox"], [role="option"],' +
               '[contenteditable="true"], [contenteditable=""]',
@@ -494,7 +507,13 @@ export class StateParser {
 
       for (const el of candidates) {
         const htmlEl = el as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-        const rect = htmlEl.getBoundingClientRect();
+        let rect = htmlEl.getBoundingClientRect();
+        // Styled ratings/radios often clip the native input to 1px. Their
+        // associated label is the visible click target and supplies the name.
+        if (rect.width < 2 || rect.height < 2) {
+          const labelRect = htmlEl.labels?.[0]?.getBoundingClientRect();
+          if (labelRect && labelRect.width >= 2 && labelRect.height >= 2) rect = labelRect;
+        }
         // Allow small elements (hidden radios can be 1×1) but skip truly zero-size
         if (rect.width === 0 && rect.height === 0) continue;
 
@@ -502,9 +521,9 @@ export class StateParser {
           htmlEl.getAttribute('aria-label') ||
           htmlEl.getAttribute('placeholder') ||
           htmlEl.getAttribute('data-placeholder') ||
+          (htmlEl.labels && htmlEl.labels[0]?.textContent?.trim()) ||
           htmlEl.getAttribute('name') ||
           htmlEl.getAttribute('id') ||
-          (htmlEl.labels && htmlEl.labels[0]?.textContent?.trim()) ||
           '';
 
         if (!name) continue;
@@ -554,7 +573,7 @@ export class StateParser {
         });
       }
       return results;
-    }, filesOnly);
+    }, controlsOnly);
 
     return rawElements.map((el: any) => ({
       id: counter.n++,
@@ -964,6 +983,7 @@ export class StateParser {
 
     return {
       id: counter.n++,
+      backendDOMNodeId: node.backendDOMNodeId,
       role,
       name: effectiveName,
       description: description || (name ? subtextContext : ''),

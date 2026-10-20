@@ -130,19 +130,28 @@ export class Verifier {
         e.frameId === targetBefore?.frameId
     );
     // Several fields can share a label. The executed ID identifies the before
-    // snapshot only; correlate the after snapshot by semantic identity and
-    // document position rather than reusing a transient parse ID.
+    // snapshot only. Prefer stable DOM identity after scrolling or layout shifts;
+    // fall back to semantic identity and position when no DOM identity is available.
     const distance = (element: (typeof afterTargets)[number]) =>
       targetBefore
         ? Math.abs(element.boundingClientRect.x - targetBefore.boundingClientRect.x) +
           Math.abs(element.boundingClientRect.y - targetBefore.boundingClientRect.y)
         : Infinity;
     afterTargets.sort((a, b) => distance(a) - distance(b));
-    const targetAfter =
+    const sameNode =
+      targetBefore?.backendDOMNodeId === undefined
+        ? []
+        : stateAfter.elements.filter(
+            e =>
+              e.backendDOMNodeId === targetBefore.backendDOMNodeId &&
+              e.frameId === targetBefore.frameId
+          );
+    const nearestTarget =
       afterTargets.length === 1 ||
       (afterTargets.length > 1 && distance(afterTargets[0]!) < distance(afterTargets[1]!))
         ? afterTargets[0]
         : undefined;
+    const targetAfter = sameNode.length === 1 ? sameNode[0] : nearestTarget;
     const isValueIntent = /\b(fill|append|type|set|choose|select)\b/i.test(intentString);
     const valueRoles =
       /^(textbox|searchbox|combobox|listbox|spinbutton|slider|datepicker|timepicker|file)$/;
