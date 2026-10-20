@@ -170,7 +170,9 @@ describe('sentinel.extend(page)', () => {
   it('extract() on extended page calls LLM and returns structured data', async () => {
     const { sentinel, page, mockLLM } = makeSentinel();
     const extractResult = { title: 'My Page', count: 42 };
-    (mockLLM.generateStructuredData as jest.Mock<any>).mockResolvedValueOnce(extractResult);
+    (
+      mockLLM.generateStructuredData as jest.Mock<(...args: unknown[]) => Promise<unknown>>
+    ).mockResolvedValueOnce(extractResult);
 
     const extended = await sentinel.extend(page);
     const result = await extended.extract('Get the page title and count', {
@@ -186,7 +188,9 @@ describe('sentinel.extend(page)', () => {
     const observeResult = {
       actions: [{ description: 'Click login button', method: 'click', selector: 'button' }],
     };
-    (mockLLM.generateStructuredData as jest.Mock<any>).mockResolvedValueOnce(observeResult);
+    (
+      mockLLM.generateStructuredData as jest.Mock<(...args: unknown[]) => Promise<unknown>>
+    ).mockResolvedValueOnce(observeResult);
 
     const extended = await sentinel.extend(page);
     const actions = await extended.observe('Find login elements');

@@ -7,21 +7,27 @@ import type { SentinelOptions } from '../index.js';
 
 function makeMockSentinel() {
   const mock: any = {
-    init: jest.fn<any>().mockResolvedValue(undefined),
-    close: jest.fn<any>().mockResolvedValue(undefined),
-    goto: jest.fn<any>().mockResolvedValue(undefined),
-    act: jest.fn<any>().mockResolvedValue({ success: true, message: 'Done', action: 'click' }),
-    extract: jest.fn<any>().mockResolvedValue({ value: 42 }),
-    observe: jest.fn<any>().mockResolvedValue([]),
-    run: jest.fn<any>().mockResolvedValue({
+    init: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    close: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    goto: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    act: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue({ success: true, message: 'Done', action: 'click' }),
+    extract: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue({ value: 42 }),
+    observe: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+    run: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue({
       goalAchieved: true,
       success: true,
       totalSteps: 1,
       message: 'ok',
       history: [],
     }),
-    screenshot: jest.fn<any>().mockResolvedValue(Buffer.from('PNG')),
-    describeScreen: jest.fn<any>().mockResolvedValue('A page with a form'),
+    screenshot: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue(Buffer.from('PNG')),
+    describeScreen: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue('A page with a form'),
     getTokenUsage: jest.fn<any>().mockReturnValue({
       totalTokens: 50,
       estimatedCostUsd: 0.000005,
