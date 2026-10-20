@@ -5,7 +5,7 @@ Thanks for your interest in contributing! Sentinel is MIT-licensed and welcomes 
 ## Quick start
 
 ```bash
-git clone https://github.com/ArasHuseyin/sentinel.ai
+git clone https://github.com/ArasHueseyin/sentinel.ai
 cd sentinel
 npm install
 npm run build
