@@ -65,6 +65,7 @@ Available actions:
 - "double-click": double click on an element
 - "right-click": right-click (context menu) on an element
 - "fill": type text into an input field (requires "value")
+  Use "fill" with the complete date for date/time pickers, including readonly calendar inputs. The executor opens and navigates the calendar; a standalone click only opens it.
 - "append": add text to the end of an input field without clearing existing content (requires "value")
 - "hover": move mouse over an element
 - "press": press a keyboard key or shortcut (requires "value", e.g. "Enter", "Escape", "Tab", "Control+a")
@@ -543,7 +544,7 @@ Page Title: ${currentState.title}
 Instruction: "${resolvedInstruction}"${failureBlock}
 
 Elements on page (id | role | name | region):
-${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.region}` : ''}${e.value !== undefined ? ` | value="${e.value}"` : ''}`).join('\n')}
+${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.region}` : ''}${e.value !== undefined ? ` | value="${e.value}"` : ''}${e.state?.readonly ? ' | readonly' : ''}`).join('\n')}
       `.trim();
 
       const schema = {
@@ -1134,7 +1135,10 @@ ${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.
   ): Promise<string | null> {
     if (action !== 'fill' && action !== 'click' && action !== 'select') return null;
     if (target.role === 'slider' && action === 'fill') return null;
-    if ((target.role === 'datepicker' || target.role === 'timepicker') && action === 'fill') {
+    if (
+      (target.role === 'datepicker' || target.role === 'timepicker' || target.state?.readonly) &&
+      action === 'fill'
+    ) {
       return null;
     }
     if (action === 'select' && (await isListboxPopoverVisible(this.page))) return null;
@@ -1337,7 +1341,10 @@ ${visibleElements.map(e => `${e.id} | ${e.role} | ${e.name}${e.region ? ` | ${e.
       await fillSlider(this.page, target, value, point);
       return;
     }
-    if ((target.role === 'datepicker' || target.role === 'timepicker') && value) {
+    if (
+      (target.role === 'datepicker' || target.role === 'timepicker' || target.state?.readonly) &&
+      value
+    ) {
       const handled = await fillDateLike(this.page, target, value, point, this.humanLike);
       if (handled) return;
     }

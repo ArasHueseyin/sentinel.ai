@@ -30,6 +30,9 @@ function summarizeState(state: SimplifiedState): object {
     // State snapshots — detects radio/checkbox selection and focus changes
     checkedElements,
     focusedElement,
+    selectedElements: state.elements
+      .filter(e => e.state?.selected)
+      .map(e => `${e.role}: ${e.name}`),
   };
 }
 
@@ -110,6 +113,44 @@ export class Verifier {
       );
     }
 
+    // Compare the actual target, not transient IDs (which change on each parse).
+    // Values stay local: verification prompts and diagnostics must not copy
+    // passwords or other form contents to the provider.
+    const targetName = /"([^"]+)"/.exec(action)?.[1];
+    const beforeTargets = stateBefore.elements.filter(e => e.name === targetName);
+    const targetBefore = beforeTargets.length === 1 ? beforeTargets[0] : undefined;
+    const afterTargets = stateAfter.elements.filter(
+      e =>
+        e.name === targetName &&
+        e.role === targetBefore?.role &&
+        e.frameId === targetBefore?.frameId
+    );
+    const targetAfter = afterTargets.length === 1 ? afterTargets[0] : undefined;
+    const isValueIntent = /\b(fill|append|type|set|choose|select)\b/i.test(intentString);
+    const valueRoles =
+      /^(textbox|searchbox|combobox|listbox|spinbutton|slider|datepicker|timepicker)$/;
+    const requiresValue =
+      /^(fill|append|select)\b/i.test(action) ||
+      (isValueIntent && valueRoles.test(targetBefore?.role ?? ''));
+    const targetValueChanged =
+      !!targetBefore && !!targetAfter && (targetBefore.value ?? '') !== (targetAfter.value ?? '');
+
+    if (requiresValue && targetValueChanged && !isSubmitIntent) {
+      return { done: true, success: true, message: 'Target field value changed', confidence: 0.95 };
+    }
+    if (
+      targetBefore?.role === 'tab' &&
+      targetAfter?.state?.selected &&
+      !targetBefore.state?.selected &&
+      !isSubmitIntent
+    ) {
+      return { done: true, success: true, message: 'Target tab selected', confidence: 0.95 };
+    }
+
+    // Opening a calendar/autocomplete or focusing an empty field only completes
+    // part of a fill instruction. Those effects must not bypass verification.
+    const allowInteractionFastPaths = !isSubmitIntent && !requiresValue;
+
     // ── Fast path 3: Scroll actions — AOM doesn't change on scroll ───────────
     // Scroll actions move the viewport but don't add/remove elements from the
     // accessibility tree, so the before/after state looks identical. The action
@@ -133,7 +174,7 @@ export class Verifier {
     // visible wrapper that carries the ARIA role. Trusting the click avoids
     // false-negative retries that would un-toggle the element.
     const isToggleClick = /click/i.test(action) && /\b(checkbox|switch|radio)\b/i.test(action);
-    if (isToggleClick && !isSubmitIntent) {
+    if (isToggleClick && allowInteractionFastPaths) {
       this.logger.info(`Toggle-click on checkbox/switch/radio — auto-success.`);
       return {
         done: true,
@@ -156,7 +197,7 @@ export class Verifier {
       .sort()
       .join('\0');
 
-    if (beforeChecked !== afterChecked && !isSubmitIntent) {
+    if (beforeChecked !== afterChecked && allowInteractionFastPaths) {
       this.logger.info(`Checked state changed. Auto-success.`);
       return {
         done: true,
@@ -185,7 +226,7 @@ export class Verifier {
     // Fall through to LLM slow path, which can reason about whether the state
     // reflects the intended outcome.
     const elementDelta = Math.abs(stateAfter.elements.length - stateBefore.elements.length);
-    if (elementDelta >= 5 && !isSubmitIntent) {
+    if (elementDelta >= 5 && allowInteractionFastPaths) {
       const targetNameMatch = /"([^"]+)"/.exec(action);
       const targetName = targetNameMatch?.[1];
       const targetStillPresent = targetName
@@ -219,7 +260,7 @@ export class Verifier {
     // into the search box is the PARTIAL result (typing started), not success.
     const focusedBefore = stateBefore.elements.find(e => e.state?.focused)?.name ?? null;
     const focusedAfter = stateAfter.elements.find(e => e.state?.focused)?.name ?? null;
-    if (focusedBefore !== focusedAfter && !isSubmitIntent) {
+    if (focusedBefore !== focusedAfter && allowInteractionFastPaths) {
       this.logger.info(
         `Focused element changed: "${focusedBefore}" → "${focusedAfter}". Auto-success.`
       );
@@ -244,6 +285,7 @@ export class Verifier {
 
     const prompt = `
       ${userGoalBlock}
+      ${requiresValue ? `The target field value ${targetValueChanged ? 'changed' : 'did not change'}. Opening its popup or moving focus alone does not complete the goal.` : ''}
 
       State BEFORE the action:
       ${JSON.stringify(summarizeState(stateBefore), null, 2)}

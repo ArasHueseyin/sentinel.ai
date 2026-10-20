@@ -77,6 +77,20 @@ jobs:
           path: coverage/
           retention-days: 7
 
+  browser-regressions:
+    name: Browser regressions (no API key)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20.x
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --runTestsByPath src/__tests__/e2e/action-regressions.test.ts
+
   e2e:
     name: E2E (real browser)
     # Drives live third-party sites and burns real LLM tokens, so it cannot gate

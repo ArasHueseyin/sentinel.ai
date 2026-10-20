@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ---
 
+## [4.2.1] - 2026-10-20
+
+This release also ships the security and reliability changes listed under 4.2.0,
+whose npm publication did not complete. The previous published version was 4.1.7.
+
+### Fixed
+
+- Discover iframe controls with semantic roles and associated labels, and track their values and selection state so frame-scoped actions can execute and verify correctly.
+- Verify completed fills and tab selections from the target's state without sending form values to the verification model. Opening a calendar or focusing a field alone no longer completes a fill instruction.
+- Route readonly calendar inputs through the date-filling cascade and check the displayed month before selecting a bare day number, preventing selection in the wrong month.
+- Preserve explicitly matched targets when many mandatory form fields fill the planner context budget.
+- Re-plan after an intermediate scroll instead of reporting an unrelated requested interaction complete.
+- Stop after a late planner response when a run was cancelled or timed out. `fillForm()` now accepts and forwards `AgentRunOptions`, including `signal` and `timeoutMs`.
+
+### Security
+
+- Refresh runtime and development dependencies to resolve all high and critical audit findings; the production dependency audit reports no vulnerabilities.
+
+### Changed
+
+- Publish through GitHub Actions with npm Trusted Publishing (OIDC) and provenance on Node 24/npm 11.
+- Add deterministic Chromium regression checks to every PR. Live browser tests default to headless, isolate browser sessions for navigation/iframe/date tests, and bound agent runs to reduce interference after timeouts.
+- Update CI tooling and Jest async mocks; retain Node 20, 22 and 24 coverage plus Windows checks.
+
 ## [4.2.0] - 2026-08-02
 
 Follow-up to the 4.1.7 review: everything that audit flagged and 4.1.7 did not get to, plus the leftovers 4.1.7 half-fixed.

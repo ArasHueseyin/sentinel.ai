@@ -27,7 +27,7 @@ describeE2E('E2E: Amazon Filter + Sort', () => {
   beforeAll(async () => {
     sentinel = new Sentinel({
       apiKey: API_KEY,
-      headless: false,
+      headless: process.env.SENTINEL_E2E_HEADED !== '1',
       verbose: 2,
       viewport: { width: 1920, height: 1080 },
       domSettleTimeoutMs: 3000,

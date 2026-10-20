@@ -28,6 +28,61 @@ function makeMockLLM(response: {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('Verifier', () => {
+  const field = (value: string, name = 'Password') => ({
+    id: 1,
+    role: 'textbox',
+    name,
+    value,
+    boundingClientRect: { x: 0, y: 0, width: 100, height: 30 },
+  });
+
+  it('verifies the target value locally without sending form contents to the LLM', async () => {
+    const llm = makeMockLLM({ success: false, confidence: 1, explanation: 'Unexpected call' });
+    const result = await new Verifier(llm).verifyAction(
+      'fill on "Password" (textbox)',
+      makeState({ elements: [field('')] }),
+      makeState({ elements: [{ ...field('private-value'), id: 9 }] })
+    );
+    expect(result.success).toBe(true);
+    expect(result.message).not.toContain('private-value');
+    expect(llm.generateStructuredData).not.toHaveBeenCalled();
+  });
+
+  it('does not mistake a different field changing for a successful fill', async () => {
+    const llm = makeMockLLM({ success: false, confidence: 1, explanation: 'Target unchanged' });
+    const result = await new Verifier(llm).verifyAction(
+      'fill on "Password" (textbox)',
+      makeState({ elements: [field(''), field('', 'Other')] }),
+      makeState({ elements: [field(''), field('private-value', 'Other')] })
+    );
+    expect(result.success).toBe(false);
+    const prompt = (llm.generateStructuredData as jest.Mock).mock.calls[0]![0] as string;
+    expect(prompt).not.toContain('private-value');
+    expect(prompt).toContain('did not change');
+  });
+
+  it('requires submission evidence even when the target value changed', async () => {
+    const llm = makeMockLLM({ success: false, confidence: 1, explanation: 'Not submitted' });
+    const result = await new Verifier(llm).verifyAction(
+      'fill on "Search" (textbox)',
+      makeState({ elements: [field('', 'Search')] }),
+      makeState({ elements: [field('playwright', 'Search')] }),
+      'Search for playwright and submit'
+    );
+    expect(result.success).toBe(false);
+    expect(llm.generateStructuredData).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not accept a newly focused field as a completed fill', async () => {
+    const llm = makeMockLLM({ success: false, confidence: 1, explanation: 'Nothing typed' });
+    const result = await new Verifier(llm).verifyAction(
+      'fill on "Password" (textbox)',
+      makeState({ elements: [field('')] }),
+      makeState({ elements: [{ ...field(''), state: { focused: true } }] })
+    );
+    expect(result.success).toBe(false);
+  });
+
   it('auto-succeeds when URL changes (fast path)', async () => {
     const llm = makeMockLLM({ success: false, confidence: 0, explanation: 'should not be called' });
     const verifier = new Verifier(llm);

@@ -258,6 +258,29 @@ describe('AgentLoop', () => {
   });
 
   describe('internal timeout', () => {
+    it('does not execute a planner response received after cancellation', async () => {
+      const controller = new AbortController();
+      const llm = makePlannerLLM();
+      const original = llm.generateStructuredData.bind(llm);
+      llm.generateStructuredData = async (...args) => {
+        const response = await original(...args);
+        controller.abort();
+        return response;
+      };
+      const actionEngine = makeActionEngine(true);
+      const extractionEngine = makeExtractionEngine();
+      const loop = new AgentLoop(
+        actionEngine as any,
+        extractionEngine as any,
+        makeStateParser() as any,
+        llm
+      );
+      const result = await loop.run('cancel while planning', { signal: controller.signal });
+      expect(result.aborted).toBe(true);
+      expect(result.goalAchieved).toBe(false);
+      expect(actionEngine.act).not.toHaveBeenCalled();
+      expect(extractionEngine.extract).not.toHaveBeenCalled();
+    });
     it('exits cleanly before maxSteps when timeoutMs is exceeded', async () => {
       // Vary the instruction per call so instruction-loop detection doesn't mask
       // the timeout by aborting earlier. Planner sleeps 150ms so only 1–2 iterations

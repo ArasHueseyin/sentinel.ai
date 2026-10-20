@@ -113,7 +113,7 @@ describeE2E('E2E: Upload + Drag + Shadow DOM', () => {
 
     sentinel = new Sentinel({
       apiKey: API_KEY,
-      headless: false,
+      headless: process.env.SENTINEL_E2E_HEADED !== '1',
       verbose: 2,
       viewport: { width: 1280, height: 720 },
       domSettleTimeoutMs: 3000,

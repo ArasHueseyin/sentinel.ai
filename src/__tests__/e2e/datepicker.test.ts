@@ -15,7 +15,7 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { Sentinel } from '../../index.js';
 
 if (!process.env.GEMINI_VERSION) {
@@ -139,10 +139,10 @@ const toDataUrl = (html: string) => 'data:text/html;charset=utf-8,' + encodeURIC
 describeE2E('E2E: Datepicker three-strategy cascade', () => {
   let sentinel: Sentinel;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     sentinel = new Sentinel({
       apiKey: API_KEY,
-      headless: false,
+      headless: process.env.SENTINEL_E2E_HEADED !== '1',
       verbose: 2,
       viewport: { width: 1280, height: 720 },
       domSettleTimeoutMs: 3000,
@@ -150,7 +150,7 @@ describeE2E('E2E: Datepicker three-strategy cascade', () => {
     await sentinel.init();
   }, 30_000);
 
-  afterAll(async () => {
+  afterEach(async () => {
     await sentinel.close();
   }, 15_000);
 

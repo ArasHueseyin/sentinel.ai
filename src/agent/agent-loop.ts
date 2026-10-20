@@ -354,6 +354,17 @@ export class AgentLoop {
         break;
       }
 
+      // Cancellation can arrive while the planner is awaiting a response. Do
+      // not execute its late answer against a page the caller has already closed.
+      if (options.signal?.aborted) {
+        aborted = true;
+        break;
+      }
+      if (timeoutMs !== undefined && Date.now() - startTime >= timeoutMs) {
+        timedOut = true;
+        break;
+      }
+
       this.logger.notice(`💭 Plan: "${planned.instruction}" — ${planned.reasoning}`, {
         instruction: planned.instruction,
         reasoning: planned.reasoning,

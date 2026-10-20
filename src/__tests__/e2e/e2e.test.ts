@@ -14,7 +14,7 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { Sentinel, z } from '../../index.js';
 
 // Default model if not set in .env
@@ -30,11 +30,13 @@ const describeE2E = RUN_E2E ? describe : describe.skip;
 
 describeE2E('E2E: Real Browser Tests', () => {
   let sentinel: Sentinel;
+  let controller: AbortController;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
+    controller = new AbortController();
     sentinel = new Sentinel({
       apiKey: API_KEY,
-      headless: false,
+      headless: process.env.SENTINEL_E2E_HEADED !== '1',
       verbose: 2,
       viewport: { width: 1920, height: 1080 },
       domSettleTimeoutMs: 3000,
@@ -43,7 +45,8 @@ describeE2E('E2E: Real Browser Tests', () => {
     await sentinel.init();
   }, 30_000);
 
-  afterAll(async () => {
+  afterEach(async () => {
+    controller.abort();
     await sentinel.close();
   }, 15_000);
 
@@ -149,7 +152,7 @@ describeE2E('E2E: Real Browser Tests', () => {
 
   describe('GitHub', () => {
     it('navigates a repository and extracts info', async () => {
-      await sentinel.goto('https://github.com/ArasHuseyin/sentinel');
+      await sentinel.goto('https://github.com/ArasHueseyin/sentinel.ai');
 
       const repoInfo = await sentinel.extract(
         'Extract the repository description, star count, and programming language',
@@ -191,7 +194,7 @@ describeE2E('E2E: Real Browser Tests', () => {
 
       const result = await sentinel.run(
         'Go to the "Ask HN" section and extract the titles of the top 3 posts',
-        { maxSteps: 8 }
+        { maxSteps: 8, timeoutMs: 90_000, signal: controller.signal }
       );
 
       expect(result.totalSteps).toBeGreaterThanOrEqual(2);
@@ -276,7 +279,7 @@ describeE2E('E2E: Real Browser Tests', () => {
           '- Type "mechanical keyboard" into the search field\n' +
           '- Click the search button or press Enter\n' +
           '- When search results appear, extract the first 3 product names and their prices',
-        { maxSteps: 10 }
+        { maxSteps: 10, timeoutMs: 90_000, signal: controller.signal }
       );
 
       console.log(`\nAmazon: ${result.totalSteps} steps, goal: ${result.goalAchieved}`);
@@ -304,7 +307,7 @@ describeE2E('E2E: Real Browser Tests', () => {
           '- Select the first suggestion from the autocomplete dropdown\n' +
           '- Click the search button\n' +
           '- When results appear, extract the names and prices of the first 3 hotels',
-        { maxSteps: 12 }
+        { maxSteps: 12, timeoutMs: 90_000, signal: controller.signal }
       );
 
       console.log(`\nBooking: ${result.totalSteps} steps, goal: ${result.goalAchieved}`);
@@ -329,7 +332,7 @@ describeE2E('E2E: Real Browser Tests', () => {
           '- Type "Künstliche Intelligenz" into the search field\n' +
           '- Press Enter or click the search button\n' +
           '- When the article appears, extract the first paragraph of the article text and the number of references',
-        { maxSteps: 8 }
+        { maxSteps: 8, timeoutMs: 90_000, signal: controller.signal }
       );
 
       console.log(`\nWikipedia: ${result.totalSteps} steps, goal: ${result.goalAchieved}`);
@@ -355,7 +358,7 @@ describeE2E('E2E: Real Browser Tests', () => {
           '- Press Enter or click search\n' +
           '- Click on the first result\n' +
           '- Extract the package name, description, weekly downloads, and latest version',
-        { maxSteps: 10 }
+        { maxSteps: 10, timeoutMs: 90_000, signal: controller.signal }
       );
 
       console.log(`\nnpmjs: ${result.totalSteps} steps, goal: ${result.goalAchieved}`);
@@ -384,10 +387,13 @@ describeE2E('E2E: Real Browser Tests', () => {
       await sentinel.act('Click the calculate/submit button');
 
       // Now use fillForm() on the detailed form
-      const result = await sentinel.fillForm({
-        Baujahr: '2020',
-        Treibstoff: 'Benzin',
-      });
+      const result = await sentinel.fillForm(
+        {
+          Baujahr: '2020',
+          Treibstoff: 'Benzin',
+        },
+        { maxSteps: 8, timeoutMs: 90_000, signal: controller.signal }
+      );
 
       console.log(`\nfillForm: ${result.totalSteps} steps, goal: ${result.goalAchieved}`);
       console.log(`Message: ${result.message}`);
@@ -459,6 +465,8 @@ describeE2E('E2E: Real Browser Tests', () => {
           '- When results/offers appear, extract the first 3 insurance providers with their prices',
         {
           maxSteps: 25,
+          timeoutMs: 240_000,
+          signal: controller.signal,
           onStep: step => {
             const icon = step.type === 'extract' ? '🔍' : step.success ? '✅' : '❌';
             console.log(`[Durchblicker ${step.stepNumber}] ${icon} ${step.instruction}`);
