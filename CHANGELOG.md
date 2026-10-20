@@ -15,6 +15,7 @@ whose npm publication did not complete. The previous published version was 4.1.7
 
 - Discover iframe controls with semantic roles and associated labels, and track their values and selection state so frame-scoped actions can execute and verify correctly.
 - Verify completed fills and tab selections from the target's state without sending form values to the verification model. Opening a calendar or focusing a field alone no longer completes a fill instruction.
+- Retain executed targets and stable DOM identity across parses, including duplicate labels and scrolling. Track selected files so a successful upload is not retried, and discover styled rating/radio controls through their visible labels.
 - Route readonly calendar inputs through the date-filling cascade and check the displayed month before selecting a bare day number, preventing selection in the wrong month.
 - Preserve explicitly matched targets when many mandatory form fields fill the planner context budget.
 - Re-plan after an intermediate scroll instead of reporting an unrelated requested interaction complete.

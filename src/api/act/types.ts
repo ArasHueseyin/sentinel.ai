@@ -31,6 +31,11 @@ export interface ActionResult {
   attempts?: ActionAttempt[];
 }
 
+/** @internal Execution identity for verification; omitted from Sentinel.act() results. */
+export interface ActionExecutionResult extends ActionResult {
+  targetId?: number;
+}
+
 export type ActionType =
   | 'click'
   | 'fill'

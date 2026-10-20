@@ -56,7 +56,8 @@ export class Verifier {
     action: string,
     stateBefore: SimplifiedState,
     stateAfter: SimplifiedState,
-    userInstruction?: string
+    userInstruction?: string,
+    targetId?: number
   ): Promise<VerificationResult> {
     // The submit-intent guard (in Fast Path 5) looks at the user's original
     // instruction, not the technical action label. "Search for X and submit"
@@ -118,19 +119,44 @@ export class Verifier {
     // passwords or other form contents to the provider.
     const targetName = /"([^"]+)"/.exec(action)?.[1];
     const beforeTargets = stateBefore.elements.filter(e => e.name === targetName);
-    const targetBefore = beforeTargets.length === 1 ? beforeTargets[0] : undefined;
+    const executedTarget =
+      targetId === undefined ? undefined : beforeTargets.find(e => e.id === targetId);
+    const targetBefore =
+      executedTarget ?? (beforeTargets.length === 1 ? beforeTargets[0] : undefined);
     const afterTargets = stateAfter.elements.filter(
       e =>
         e.name === targetName &&
         e.role === targetBefore?.role &&
         e.frameId === targetBefore?.frameId
     );
-    const targetAfter = afterTargets.length === 1 ? afterTargets[0] : undefined;
+    // Several fields can share a label. The executed ID identifies the before
+    // snapshot only. Prefer stable DOM identity after scrolling or layout shifts;
+    // fall back to semantic identity and position when no DOM identity is available.
+    const distance = (element: (typeof afterTargets)[number]) =>
+      targetBefore
+        ? Math.abs(element.boundingClientRect.x - targetBefore.boundingClientRect.x) +
+          Math.abs(element.boundingClientRect.y - targetBefore.boundingClientRect.y)
+        : Infinity;
+    afterTargets.sort((a, b) => distance(a) - distance(b));
+    const sameNode =
+      targetBefore?.backendDOMNodeId === undefined
+        ? []
+        : stateAfter.elements.filter(
+            e =>
+              e.backendDOMNodeId === targetBefore.backendDOMNodeId &&
+              e.frameId === targetBefore.frameId
+          );
+    const nearestTarget =
+      afterTargets.length === 1 ||
+      (afterTargets.length > 1 && distance(afterTargets[0]!) < distance(afterTargets[1]!))
+        ? afterTargets[0]
+        : undefined;
+    const targetAfter = sameNode.length === 1 ? sameNode[0] : nearestTarget;
     const isValueIntent = /\b(fill|append|type|set|choose|select)\b/i.test(intentString);
     const valueRoles =
-      /^(textbox|searchbox|combobox|listbox|spinbutton|slider|datepicker|timepicker)$/;
+      /^(textbox|searchbox|combobox|listbox|spinbutton|slider|datepicker|timepicker|file)$/;
     const requiresValue =
-      /^(fill|append|select)\b/i.test(action) ||
+      /^(fill|append|select|upload)\b/i.test(action) ||
       (isValueIntent && valueRoles.test(targetBefore?.role ?? ''));
     const targetValueChanged =
       !!targetBefore && !!targetAfter && (targetBefore.value ?? '') !== (targetAfter.value ?? '');
@@ -285,7 +311,7 @@ export class Verifier {
 
     const prompt = `
       ${userGoalBlock}
-      ${requiresValue ? `The target field value ${targetValueChanged ? 'changed' : 'did not change'}. Opening its popup or moving focus alone does not complete the goal.` : ''}
+      ${requiresValue ? `The target field value ${targetBefore && targetAfter ? (targetValueChanged ? 'changed' : 'did not change') : 'could not be compared unambiguously'}. Opening its popup or moving focus alone does not complete the goal.` : ''}
 
       State BEFORE the action:
       ${JSON.stringify(summarizeState(stateBefore), null, 2)}

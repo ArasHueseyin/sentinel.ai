@@ -972,6 +972,8 @@ describe('StateParser', () => {
               region: 'main',
             }));
           }
+          // File discovery runs even when AX already contains other form fields.
+          if (typeof params === 'boolean') return [];
           parameterlessCallCount++;
           // 1 = scrollPos
           if (parameterlessCallCount === 1) return { x: 0, y: 0 };

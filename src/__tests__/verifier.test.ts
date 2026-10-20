@@ -61,6 +61,34 @@ describe('Verifier', () => {
     expect(prompt).toContain('did not change');
   });
 
+  it('does not verify the selected duplicate from a change to a different duplicate', async () => {
+    const llm = makeMockLLM({
+      success: false,
+      confidence: 1,
+      explanation: 'Selected field unchanged',
+    });
+    const first = { ...field(''), id: 1 };
+    const second = {
+      ...field(''),
+      id: 2,
+      boundingClientRect: { x: 0, y: 100, width: 100, height: 30 },
+    };
+    const result = await new Verifier(llm).verifyAction(
+      'fill on "Password" (textbox)',
+      makeState({ elements: [first, second] }),
+      makeState({
+        elements: [
+          { ...first, id: 20 },
+          { ...second, id: 21, value: 'private-value' },
+        ],
+      }),
+      'Fill the first Password field',
+      1
+    );
+    expect(result.success).toBe(false);
+    expect(llm.generateStructuredData).toHaveBeenCalledTimes(1);
+  });
+
   it('requires submission evidence even when the target value changed', async () => {
     const llm = makeMockLLM({ success: false, confidence: 1, explanation: 'Not submitted' });
     const result = await new Verifier(llm).verifyAction(

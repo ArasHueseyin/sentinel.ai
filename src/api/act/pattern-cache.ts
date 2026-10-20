@@ -2,7 +2,7 @@ import type { Page } from 'playwright';
 import type { StateParser, UIElement } from '../../core/state-parser.js';
 import type { IPatternCache, PatternSequence } from '../../core/pattern-cache.js';
 import type { PatternFingerprint } from '../../core/pattern-signature.js';
-import type { ActionResult, ActionType } from './types.js';
+import type { ActionExecutionResult, ActionType } from './types.js';
 import { waitForPageSettle } from './page-settle.js';
 
 type Logger = (level: 1 | 2 | 3, message: string) => void;
@@ -155,7 +155,7 @@ export class PatternCacheCoordinator {
     fingerprints: Map<number, PatternFingerprint>,
     instruction: string,
     performAction: PerformActionCallback
-  ): Promise<ActionResult | null> {
+  ): Promise<ActionExecutionResult | null> {
     if (!this.patternCache || fingerprints.size === 0) return null;
     // Iterate candidates in relevance order — first cache hit wins.
     const top = candidates.slice(0, PATTERN_PROBE_TOP_N);
@@ -209,6 +209,7 @@ export class PatternCacheCoordinator {
         return {
           success: true,
           message: `Successfully performed ${entry.sequence.action} on "${candidate.name}" (pattern)`,
+          targetId: candidate.id,
           action: actionLabel,
         };
       } catch (err: any) {
