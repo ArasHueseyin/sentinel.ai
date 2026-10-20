@@ -6,7 +6,7 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 // and reconfigure per-test without the jest.resetModules + dynamic-import dance
 // (which is flaky across Jest versions / module-cache states).
 
-const mockGenerateContent = jest.fn<any>();
+const mockGenerateContent = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 const mockGetGenerativeModel = jest.fn<any>();
 
 jest.mock('@google/generative-ai', () => ({

@@ -282,18 +282,24 @@ import type { ILocatorCache } from '../core/locator-cache.js';
 
 function makeMockLocator() {
   const locator: any = {
-    click: jest.fn<any>().mockResolvedValue(undefined),
-    dblclick: jest.fn<any>().mockResolvedValue(undefined),
-    hover: jest.fn<any>().mockResolvedValue(undefined),
-    fill: jest.fn<any>().mockResolvedValue(undefined),
-    focus: jest.fn<any>().mockResolvedValue(undefined),
-    press: jest.fn<any>().mockResolvedValue(undefined),
-    pressSequentially: jest.fn<any>().mockResolvedValue(undefined),
-    selectOption: jest.fn<any>().mockResolvedValue([]),
-    scrollIntoViewIfNeeded: jest.fn<any>().mockResolvedValue(undefined),
-    evaluate: jest.fn<any>().mockResolvedValue(undefined),
-    boundingBox: jest.fn<any>().mockResolvedValue({ x: 10, y: 10, width: 100, height: 40 }),
-    isVisible: jest.fn<any>().mockResolvedValue(true),
+    click: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    dblclick: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    hover: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    fill: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    focus: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    press: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    pressSequentially: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue(undefined),
+    selectOption: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+    scrollIntoViewIfNeeded: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue(undefined),
+    evaluate: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+    boundingBox: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue({ x: 10, y: 10, width: 100, height: 40 }),
+    isVisible: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(true),
     first: jest.fn<any>(function () {
       return locator;
     }),
@@ -309,18 +315,24 @@ function makeMockPage() {
     evaluate: jest.fn<any>(async (_fn: any, args?: any) =>
       args === undefined ? { x: 0, y: 0 } : null
     ),
-    waitForNavigation: jest.fn<any>().mockResolvedValue(undefined),
-    waitForLoadState: jest.fn<any>().mockResolvedValue(undefined),
+    waitForNavigation: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue(undefined),
+    waitForLoadState: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue(undefined),
     mouse: {
-      click: jest.fn<any>().mockResolvedValue(undefined),
-      wheel: jest.fn<any>().mockResolvedValue(undefined),
+      click: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+      wheel: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
     },
     keyboard: {
-      press: jest.fn<any>().mockResolvedValue(undefined),
-      type: jest.fn<any>().mockResolvedValue(undefined),
+      press: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
+      type: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue(undefined),
     },
     viewportSize: jest.fn<any>().mockReturnValue({ width: 1280, height: 720 }),
-    waitForTimeout: jest.fn<any>().mockResolvedValue(undefined),
+    waitForTimeout: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue(undefined),
     url: jest.fn<any>().mockReturnValue('https://example.com/page'),
     locator: jest.fn<any>().mockReturnValue(locatorInstance),
     getByRole: jest.fn<any>().mockReturnValue(locatorInstance),
@@ -330,7 +342,7 @@ function makeMockPage() {
 
 function makeMockStateParser(elements: any[] = []) {
   return {
-    parse: jest.fn<any>().mockResolvedValue({
+    parse: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue({
       url: 'https://example.com/page',
       title: 'Test',
       elements,
@@ -341,7 +353,9 @@ function makeMockStateParser(elements: any[] = []) {
 
 function makeMockLLM(decision: any) {
   return {
-    generateStructuredData: jest.fn<any>().mockResolvedValue(decision),
+    generateStructuredData: jest
+      .fn<(...args: unknown[]) => Promise<unknown>>()
+      .mockResolvedValue(decision),
   } as any;
 }
 
