@@ -70,6 +70,30 @@ Browser-level tests require a real Chromium install (`npx playwright install chr
 `prepublishOnly`; run it locally before proposing anything that touches
 `package.json`, `tsconfig.build.json`, or the module layout.
 
+## Publishing releases
+
+The Release workflow publishes version tags with npm Trusted Publishing (OIDC).
+It uses Node 24 and npm 11, and does not require the `NPM_TOKEN` secret.
+
+A package maintainer must configure the following trusted publisher in the
+settings for `@isoldex/sentinel` on npm before the next release:
+
+- Provider: GitHub Actions
+- Organization or user: `ArasHueseyin`
+- Repository: `sentinel.ai`
+- Workflow filename: `release.yml`
+- Environment: leave empty (the workflow does not use a GitHub environment)
+- Allowed action: direct publishing with `npm publish`
+
+Follow the [npm Trusted Publishing setup](https://docs.npmjs.com/trusted-publishers/).
+Create a new configuration shortly before a release: npm expires configurations
+that do not complete their first publish within two days. `--provenance` signs
+the package; authentication comes from the separate trusted publisher setup.
+
+After merging and validating the release commit, create a version tag matching
+`package.json` and push it. A workflow dry run cannot verify npm-side trust;
+successful publishing is the final check.
+
 ## Code style
 
 - TypeScript strict mode

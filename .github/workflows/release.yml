@@ -29,12 +29,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
+          node-version: 24.x
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
+      # Trusted publishing needs npm >=11.5.1 and a matching npm-side trust
+      # configuration. See CONTRIBUTING.md for the one-time account setup.
+      - name: Setup npm for trusted publishing
+        run: npm install --global npm@11
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Verify tag matches package.json version
         run: |
@@ -66,5 +74,3 @@ jobs:
 
       - name: Publish
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -41,6 +41,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit production dependencies
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '22.x'
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Type-check
         run: npm run typecheck
 
@@ -77,7 +81,8 @@ jobs:
     # every push. Nightly plus manual dispatch keeps it honest without making
     # a third party's downtime look like our regression.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    # Playwright 1.59 does not support the Ubuntu 26.04 image behind latest.
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
@@ -99,4 +104,6 @@ jobs:
       - name: Run E2E suite
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: npm run test:e2e
+        run: |
+          node -e "if (!process.env.GEMINI_API_KEY) { console.error('Set the GEMINI_API_KEY Actions secret to run E2E tests'); process.exit(1); }"
+          xvfb-run --auto-servernum npm run test:e2e
